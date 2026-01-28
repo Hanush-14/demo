@@ -1,51 +1,48 @@
-
 pipeline {
     agent any
 
     environment {
-        IMAGE = "hanush14/node-app"
+        IMAGE = "hanush14/flask-app"
+        TAG   = "1.0"
     }
 
     stages {
 
-        stage("Clone Code") {
-            steps {
-                git branch: 'main', url: 'https://github.com/Hanush-14/demo.git'
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                sh 'docker build -t hanush14/flask-app:1.0 .'
-            }
-        }
         stage("Docker Hub Login") {
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub-creds',
-                    usernameVariable: 'USER',
-                    passwordVariable: 'PASS'
+                    usernameVariable: 'DOCKER_USER',
+                    passwordVariable: 'DOCKER_PASS'
                 )]) {
-                    sh "echo $PASS | docker login -u $USER --password-stdin"
+                    sh '''
+                      echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                    '''
                 }
+            }
+        }
+
+        stage("Build Docker Image") {
+            steps {
+                sh 'docker build -t $IMAGE:$TAG .'
             }
         }
 
         stage("Push Image") {
             steps {
-                sh "docker push $IMAGE:1.0"
+                sh 'docker push $IMAGE:$TAG'
             }
         }
 
         stage("Deploy to Docker Swarm") {
             steps {
                 sh '''
-                docker service rm nodeapp || true
+                docker service rm flaskapp || true
                 docker service create \
-                  --name nodeapp \
+                  --name flaskapp \
                   --replicas 2 \
-                  -p 4000:3000 \
-                  $IMAGE:1.0
+                  -p 4000:5000 \
+                  $IMAGE:$TAG
                 '''
             }
         }
