@@ -1,0 +1,54 @@
+
+pipeline {
+    agent any
+
+    environment {
+        IMAGE = "hanush14/node-app"
+    }
+
+    stages {
+
+        stage("Clone Code") {
+            steps {
+                git branch: 'main', url: 'https://github.com/Hanush-14/demo.git'
+            }
+        }
+
+        stage("Build Docker Image") {
+            steps {
+                sh "docker build -t $IMAGE:1.0 devops-project"
+            }
+        }
+
+        stage("Docker Hub Login") {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'USER',
+                    passwordVariable: 'PASS'
+                )]) {
+                    sh "echo $PASS | docker login -u $USER --password-stdin"
+                }
+            }
+        }
+
+        stage("Push Image") {
+            steps {
+                sh "docker push $IMAGE:1.0"
+            }
+        }
+
+        stage("Deploy to Docker Swarm") {
+            steps {
+                sh '''
+                docker service rm nodeapp || true
+                docker service create \
+                  --name nodeapp \
+                  --replicas 2 \
+                  -p 4000:3000 \
+                  $IMAGE:1.0
+                '''
+            }
+        }
+    }
+}
