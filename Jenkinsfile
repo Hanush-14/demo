@@ -16,7 +16,7 @@ pipeline {
 
         stage("Build Docker Image") {
             steps {
-                sh "docker build -t $IMAGE:1.0 devops-project"
+                sh "docker build -t $IMAGE:1.0 flask-app:1.0 ."
             }
         }
 
