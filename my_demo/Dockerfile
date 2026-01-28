@@ -1,7 +1,7 @@
 FROM python3.10-slim
 WORKDIR /app
 
-COPY ..
+COPY requirment.txt .
 
 RUN pip install clean package requirment.txt
 COPY .
