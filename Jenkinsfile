@@ -14,12 +14,11 @@ pipeline {
             }
         }
 
-        stage("Build Docker Image") {
+        stage('Build Docker Image') {
             steps {
-                sh "docker build -t $IMAGE:1.0 flask-app:1.0 ."
+                sh 'docker build -t hanush14/flask-app:1.0 .'
             }
         }
-
         stage("Docker Hub Login") {
             steps {
                 withCredentials([usernamePassword(
