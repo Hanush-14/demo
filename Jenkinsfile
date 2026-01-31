@@ -2,49 +2,46 @@ pipeline {
     agent any
 
     environment {
-        IMAGE = "hanush14/flask-app"
-        TAG   = "1.0"
+        IMAGE_NAME = "hanush14/flask-docker-app"
     }
 
     stages {
 
-        stage("Docker Hub Login") {
+        stage('Checkout Code') {
             steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds',
-                    usernameVariable: 'DOCKER_USER',
-                    passwordVariable: 'DOCKER_PASS'
-                )]) {
-                    sh '''
-                      echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
-                    '''
+                git branch: 'master',
+                    url: 'https://github.com/Hanush-14/demo.git'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                script {
+                    dockerImage = docker.build("${IMAGE_NAME}:latest")
                 }
             }
         }
 
-        stage("Build Docker Image") {
+        stage('Push to Docker Hub') {
             steps {
-                sh 'docker build -t $IMAGE:$TAG .'
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', 'dockerhub') {
+                        dockerImage.push()
+                    }
+                }
             }
         }
+    }
 
-        stage("Push Image") {
-            steps {
-                sh 'docker push $IMAGE:$TAG'
-            }
+    post {
+        success {
+            echo "Pipeline succeeded!"
         }
-
-        stage("Deploy to Docker Swarm") {
-            steps {
-                sh '''
-                docker service rm flaskapp || true
-                docker service create \
-                  --name flaskapp \
-                  --replicas 2 \
-                  -p 4000:5000 \
-                  $IMAGE:$TAG
-                '''
-            }
+        failure {
+            echo "Pipeline failed!"
+        }
+        always {
+            deleteDir()
         }
     }
 }
